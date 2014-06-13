@@ -10,6 +10,7 @@ Functions to manipulate sequences of music in Music21
 import os
 from music21 import stream
 from Music21OMR import correctors
+from music21 import note
 class Music21Functions:
 
     def getStringNotesFromBar(self,mybar):
@@ -53,26 +54,29 @@ class Music21Functions:
      
     def getWholeNoteString(self,OMR):
         strOut=""
-        for i in range(len(OMR.parts[0])-1):
+        for i in range(len(OMR.parts[0])):
             strOut+=self.getSingleStringBar(OMR,i+1)
             strOut+="|"
         return strOut
     
     def getDuration(self,bar):
         duration=0
-        for event in bar:
-            try:
-                if(event.isNote):
-                    duration+=event.duration.quarterLength
-                if(event.isRest):
-                    duration+=event.duration.quarterLength
-            except:
-                print
+        try:
+            for event in bar:
+                try:
+                    if(event.isNote):
+                        duration+=event.duration.quarterLength
+                    if(event.isRest):
+                        duration+=event.duration.quarterLength
+                except:
+                    a=0 
+        except:
+            a=0
         return str(duration)
     
     def getWholeDurations(self,OMR):
         strOut=""
-        for i in range(len(OMR.parts[0])-1):
+        for i in range(len(OMR.parts[0])):
             bar=OMR.parts[0].measure(i+1)
             strOut+=self.getDuration(bar)
             strOut+="|"
@@ -83,8 +87,10 @@ class Music21Functions:
         get Hash string of a Part (music21)
         '''
         hashArray=[]
-        for i in range(len(part.measureOffsetMap())):
-            measure=part.measure(i+1)
+        lengthArray=len(part.measureOffsetMap())
+        for i in range(lengthArray):
+#             measure=part.measure(i+1)
+            measure=part.getElementsByClass(stream.Measure)[i]
             hashMeasure=self.getHashFromMeasure(measure)
             hashArray.append(hashMeasure)
         return hashArray
@@ -96,23 +102,30 @@ class Music21Functions:
         mh=correctors.MeasureHash(measure).getHashString()
         return mh
     def reconstructScore(self,part,hashPart): 
-        partReconstructed=stream.Stream()
+        partReconstructed=stream.Part()
         barNumber=1
-        for i in range(len(hashPart)):
-            print barNumber
+        for i in range(len(hashPart)): 
             if hashPart[i]!="*":
-                try:
-                    partReconstructed.append(part.measure(barNumber))
-                    barNumber+=1
-                except:
-                    print "error"
+#                 m=part.measure(barNumber)
+                m=part.getElementsByClass(stream.Measure)[barNumber-1]
+                partReconstructed.append(m)
+                barNumber+=1
             else:
                 m=stream.Measure()
                 partReconstructed.append(m)
                 
-                
-        return partReconstructed
-            
+        myStream=self.reorderMeasures(partReconstructed)  
+        return myStream
+    
+    def reorderMeasures(self,omr):
+        s=stream.Part()
+        barNumber=1
+        for measure in omr.getElementsByClass(stream.Measure):
+            measure.number=barNumber
+            s.append(measure)
+            barNumber+=1
+    
+        return s              
             
 
         
@@ -128,7 +141,37 @@ class Music21Functions:
                 s.append(element)
         s=s.notesAndRests
         return s
-
+    
+    def correctIncorrectMeasuresArray(self,omr,incorrectMeasures):
+        measures=omr.parts[0].getElementsByClass(stream.Measure)
+        for barNumber in incorrectMeasures:
+            if barNumber<len(measures)-1:
+    #             measure=omr.parts[0].measure(barNumber+1)
+                measure=measures[barNumber]
+    #             measureNext=omr.parts[0].measure(barNumber+2)
+                measureNext=measures[barNumber+1]
+                duration=self.getDuration(measure)
+                if(measureNext!=None):
+                    durationNext=self.getDuration(measureNext)
+                    if(float(duration)+float(durationNext)==4):
+                        try:
+                            incorrectMeasures.remove(barNumber)
+                            incorrectMeasures.remove(barNumber+1)
+                        except:
+#                             print "error correctIncorrectmeasures bar:"+str(barNumber)
+                            a=1
+                        self.correctIncorrectMeasuresArray(omr,incorrectMeasures)
+        return incorrectMeasures
+    
+    
+    def filterExtraMeasures(self,omr):
+        sco=stream.Score()
+        s=stream.Part()
+        for measure in omr.parts[0].getElementsByClass(stream.Measure):
+            if measure.duration.quarterLength>0:
+                s.append(measure)
+        sco.append(s)
+        return sco
     
     def writeAlignmentMAFFT(self,sequences):
         '''

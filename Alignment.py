@@ -151,8 +151,13 @@ class Alignment:
             print "\n"+"~`"*25
             print len(seq1)
             print "Alignment Score: %f\n" % (s[len(seq1),len(seq2)])
-
-        self.score=s[len(seq1), len(seq2)]/len(seq1)
+            
+        score=s[len(seq1), len(seq2)]/len(seq1)
+        if score>1:
+            score=1
+        if score<-1:
+            score=-1
+        self.score=score
         return alignment, s[len(seq1), len(seq2)]
     
     def needleman_wunsch_multiple(self,seq) :

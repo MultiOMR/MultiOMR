@@ -38,8 +38,7 @@ class AlignmentArrays:
      
         n = len(seq1)
         m = len(seq2)
-        print n
-        print m
+
         s = np.zeros( (n+1, m+1) ) # DP matrix
         ptr = np.zeros( (n+1, m+1), dtype=int  ) # matrix of pointers
      
