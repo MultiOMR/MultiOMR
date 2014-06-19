@@ -14,5 +14,9 @@ tree = ET.parse(fh)
 for element in tree.iter(tag=ET.Element):
     if element.tag == "bar-style" and element.text == None:
         element.text = "regular"
+    if element.tag == "beats" and element.text == "null":
+        element.text = "4"
+    if element.tag == "beat-type" and element.text == "null":
+        element.text = "4"
 
 print ET.tostring(tree)
